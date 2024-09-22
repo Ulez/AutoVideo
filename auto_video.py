@@ -99,7 +99,7 @@ def detect_kill_events(video_path, log_file):
                         log.write(log_entry)
                         print(log_entry)
                         kill_times.append(current_time - 3)  # 记录时间戳
-                        print(f"之前击杀数: {previous_kill}，更新为：{stable_kill_value}")
+                        print(f"之前击杀数: {previous_kill}，更新为：{stable_kill_value},{current_time - 3}")
                         previous_kill = stable_kill_value  # 更新上一个 kill 值
                 # if any(keyword in text for keyword in kill_words):
                 #     kill_times.append(current_time)
@@ -110,41 +110,42 @@ def detect_kill_events(video_path, log_file):
     video.release()
     return kill_times
 
-def clip_video_around_times(video_path, output_path, kill_times, duration=10):
+def clip_video_around_times(video_path, output_path, kill_times):
     # Load the video
     video = VideoFileClip(video_path)
     clips = []
-    
+
     # Sort the kill times in case they are not sorted
     kill_times.sort()
-    
-    # Initialize the start and end times of the first subclip
-    current_start_time = max(kill_times[0] - duration / 2, 0)
-    current_end_time = min(kill_times[0] + duration / 2, video.duration)
-    
+
+    # Initialize the start and end times for the first segment
+    current_start_time = max(kill_times[0] - 10, 0)  # 前10秒
+    current_end_time = min(kill_times[0] + 5, video.duration)  # 后5秒
+
     for t in kill_times[1:]:
-        start_time = max(t - duration / 2, 0)
-        end_time = min(t + duration / 2, video.duration)
-        
-        # If the new clip overlaps or is adjacent to the previous one, merge them
-        if start_time <= current_end_time:
-            # Extend the current clip
-            current_end_time = max(current_end_time, end_time)
+        # 新的时间戳的起始和结束时间
+        new_start_time = max(t - 10, 0)
+        new_end_time = min(t + 5, video.duration)
+
+        # 如果新时间戳在当前片段的范围内
+        if new_start_time <= current_end_time + 10:  # 合并条件
+            # Extend the current segment
+            current_end_time = max(current_end_time, new_end_time)
         else:
-            # Append the current clip and start a new one
+            # Append the current segment and start a new one
             print(f"Creating subclip from {current_start_time} to {current_end_time}")
             clip = video.subclip(current_start_time, current_end_time)
             clips.append(clip)
-            
-            # Start a new clip
-            current_start_time = start_time
-            current_end_time = end_time
-    
-    # Append the last clip
+
+            # Start a new segment
+            current_start_time = new_start_time
+            current_end_time = new_end_time
+
+    # Don't forget to add the last segment
     print(f"Creating subclip from {current_start_time} to {current_end_time}")
     clip = video.subclip(current_start_time, current_end_time)
     clips.append(clip)
-    
+
     # Concatenate all the subclips and write them to the output video
     final_clip = concatenate_videoclips(clips)
     final_clip.write_videofile(output_path, codec="libx264")
