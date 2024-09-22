@@ -1,6 +1,10 @@
 import cv2
 import pytesseract
 import os
+from moviepy.editor import VideoFileClip
+from moviepy.video.io.VideoFileClip import VideoFileClip
+from moviepy.video.compositing.concatenate import concatenate_videoclips
+
 
 os.environ['TESSDATA_PREFIX'] = '/usr/share/tesseract-ocr/5/'
 
@@ -72,8 +76,30 @@ def detect_kill_events(video_path, log_file):
     video.release()
     return kill_times
 
+
+def clip_video_around_times(video_path, output_path, kill_times, duration=10):
+    # Load the video
+    video = VideoFileClip(video_path)
+    clips = []
+    
+    # Create a subclip around each kill time (-10 to +10 seconds)
+    for t in kill_times:
+        start_time = max(t - duration / 2, 0)  # Ensure no negative start times
+        end_time = min(t + duration / 2, video.duration)
+        print(f"Creating subclip from {start_time} to {end_time}")
+        clip = video.subclip(start_time, end_time)
+        clips.append(clip)
+    
+    # Concatenate all the subclips and write them to the output video
+    final_clip = concatenate_videoclips(clips)
+    final_clip.write_videofile(output_path, codec="libx264")
+
 # 示例使用
 video_path = 'a.mp4'
 log_file = 'kill_events_log.txt'
 kill_times = detect_kill_events(video_path, log_file)
+# kill_times = [317.18100000000004, 416.63800000000003, 492.387, 720.653, 721.5980000000001, 729.173]
 print("Detected kill times:", kill_times)
+# 将每个击杀时间前后10秒剪辑到新视频中
+output_path = 'kill_clips.mp4'
+clip_video_around_times(video_path, output_path, kill_times)
