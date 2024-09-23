@@ -6,9 +6,12 @@ from moviepy.video.io.VideoFileClip import VideoFileClip
 from moviepy.video.compositing.concatenate import concatenate_videoclips
 from collections import deque
 
+w = 38
+h = 30
+
 coordinates = {
-        "hydd": [1800, 127, 1839, 158],
-        "hyxye": [1800, 127, 1839, 158]
+        "虎牙呆呆-安卓":   [1800, 127, 1839, 158],
+        "虎牙小锦儿-ipad": [1516, 220, 1554, 250]
 }
 
 kill_queue = deque(maxlen=3)  # 存储最近三次识别的击杀数
@@ -29,7 +32,7 @@ def get_kill_words_frame(image, width_ratio=0.1, top_ratio=0.15, bottom_ratio=0.
     return image[y1:y2, x1:x2]
 
 def get_kda_image(image):
-    x1, y1, x2, y2 = coordinates["hydd"]
+    x1, y1, x2, y2 = coordinates["虎牙小锦儿-ipad"]
     return image[y1:y2, x1:x2]
 
 def detect_kill_events(video_path, log_file):
@@ -57,7 +60,7 @@ def detect_kill_events(video_path, log_file):
             #     continue
             # if i> 7711:
             #     break
-            if i % 23 == 0:
+            if i % 26 == 0:
                 # kill_words_frame = get_kill_words_frame(frame)
                 kda_frame = get_kda_image(frame)
                 # kill_word_image_path = f"image/{i}killwords.png"
@@ -78,7 +81,7 @@ def detect_kill_events(video_path, log_file):
                     # 尝试将识别到的 kill 转换为整数
                     kill_value = int(kill)
                     log.write(f"{current_time:.2f}, text = {kill}\n")
-                    print(f"Time: {current_time:.2f}，当前击杀数：{kill}，{kill_value}")
+                    print(f"Time: {current_time:.2f}，当前击杀数：{kill}，{i}kda.png")
                     kill_queue.append(kill_value)
                 except ValueError:
                     kill_queue.clear
@@ -86,12 +89,12 @@ def detect_kill_events(video_path, log_file):
                 # 检查队列中是否有连续三次相同的值
                 if len(kill_queue) == 3 and len(set(kill_queue)) == 1:
                     stable_kill_value = kill_queue[0]
-                    if stable_kill_value is not None and stable_kill_value - previous_kill>0 and stable_kill_value - previous_kill<3 and kill_value < 30:
+                    if stable_kill_value is not None and stable_kill_value - previous_kill>0 and stable_kill_value - previous_kill<2 and kill_value < 30:
                         log_entry = f'Time: {current_time:.2f}s, Text: {kill}\n'
                         log.write(log_entry)
                         print(log_entry)
                         kill_times.append(current_time - 3)  # 记录时间戳
-                        print(f"之前击杀数: {previous_kill}，更新为：{stable_kill_value},{current_time - 3}")
+                        print(f"之前击杀数: {previous_kill}，更新为：{stable_kill_value}, time：{current_time - 3}")
                         previous_kill = stable_kill_value  # 更新上一个 kill 值
                 # if any(keyword in text for keyword in kill_words):
                 #     kill_times.append(current_time)
@@ -161,7 +164,7 @@ def clip_video_around_times(video_path, output_path, kill_times):
 #     final_clip.write_videofile(output_path, codec="libx264")
 
 # 示例使用
-video_path = 'IMG_0281.MP4'
+video_path = 'final.mp4'
 log_file = 'kill_events_log.txt'
 kill_times = detect_kill_events(video_path, log_file)
 # kill_times = [317.18100000000004, 416.63800000000003, 492.387, 720.653, 721.5980000000001, 729.173]
