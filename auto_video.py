@@ -15,6 +15,7 @@ coordinates = {
 }
 
 kill_queue = deque(maxlen=3)  # 存储最近三次识别的击杀数
+nagkill_queue = deque(maxlen=6)  # 存储最近6次识别的击杀数
 
 os.environ['TESSDATA_PREFIX'] = '/usr/share/tesseract-ocr/5/'
 
@@ -32,7 +33,7 @@ def get_kill_words_frame(image, width_ratio=0.1, top_ratio=0.15, bottom_ratio=0.
     return image[y1:y2, x1:x2]
 
 def get_kda_image(image):
-    x1, y1, x2, y2 = coordinates["虎牙小锦儿-ipad"]
+    x1, y1, x2, y2 = coordinates["虎牙呆呆-安卓"]
     return image[y1:y2, x1:x2]
 
 def detect_kill_events(video_path, log_file):
@@ -83,19 +84,34 @@ def detect_kill_events(video_path, log_file):
                     log.write(f"{current_time:.2f}, text = {kill}\n")
                     print(f"Time: {current_time:.2f}，当前击杀数：{kill}，{i}kda.png")
                     kill_queue.append(kill_value)
+                    nagkill_queue.append(kill_value)
                 except ValueError:
+                    print("error")
                     kill_queue.clear
+                    nagkill_queue.clear
                 # 检查条件：stable_kill_value 存在且递增且小于 30
                 # 检查队列中是否有连续三次相同的值
                 if len(kill_queue) == 3 and len(set(kill_queue)) == 1:
                     stable_kill_value = kill_queue[0]
-                    if stable_kill_value is not None and stable_kill_value - previous_kill>0 and stable_kill_value - previous_kill<2 and kill_value < 30:
+                    if stable_kill_value is not None and stable_kill_value - previous_kill>0 and stable_kill_value - previous_kill<4 and kill_value < 30:
                         log_entry = f'Time: {current_time:.2f}s, Text: {kill}\n'
                         log.write(log_entry)
                         print(log_entry)
                         kill_times.append(current_time - 3)  # 记录时间戳
                         print(f"之前击杀数: {previous_kill}，更新为：{stable_kill_value}, time：{current_time - 3}")
                         previous_kill = stable_kill_value  # 更新上一个 kill 值
+                print(str(nagkill_queue))
+                print(str(kill_queue))
+                if len(nagkill_queue) == 6 and len(set(nagkill_queue)) == 1:
+                    if stable_kill_value!= nagkill_queue[0]:
+                        stable_kill_value = nagkill_queue[0]
+                        log_entry = f'fix!!! Time: {current_time:.2f}s, Text: {kill}\n'
+                        log.write(log_entry)
+                        print(log_entry)
+                        kill_times.append(current_time - 6)  # 记录时间戳
+                        print(f"fix!!!之前击杀数: {previous_kill}，更新为：{stable_kill_value}, time：{current_time - 6}")
+                        previous_kill = stable_kill_value  # 更新上一个 kill 值戳
+
                 # if any(keyword in text for keyword in kill_words):
                 #     kill_times.append(current_time)
                 #     log_entry = f'Time: {current_time:.2f}s, Text: {text.strip()}\n'
@@ -145,30 +161,23 @@ def clip_video_around_times(video_path, output_path, kill_times):
     final_clip = concatenate_videoclips(clips)
     final_clip.write_videofile(output_path, codec="libx264")
 
+def process_video(video_path, output_path, log_file):
+    kill_times = detect_kill_events(video_path, log_file)
+    print(f"Detected kill times for {video_path}: {kill_times}")
+    clip_video_around_times(video_path, output_path, kill_times)
 
-# def clip_video_around_times(video_path, output_path, kill_times, duration=10):
-#     # Load the video
-#     video = VideoFileClip(video_path)
-#     clips = []
-    
-#     # Create a subclip around each kill time (-10 to +10 seconds)
-#     for t in kill_times:
-#         start_time = max(t - duration / 2, 0)  # Ensure no negative start times
-#         end_time = min(t + duration / 2, video.duration)
-#         print(f"Creating subclip from {start_time} to {end_time}")
-#         clip = video.subclip(start_time, end_time)
-#         clips.append(clip)
-    
-#     # Concatenate all the subclips and write them to the output video
-#     final_clip = concatenate_videoclips(clips)
-#     final_clip.write_videofile(output_path, codec="libx264")
+def main(input_dir, output_dir):
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
 
-# 示例使用
-video_path = 'final.mp4'
-log_file = 'kill_events_log.txt'
-kill_times = detect_kill_events(video_path, log_file)
-# kill_times = [317.18100000000004, 416.63800000000003, 492.387, 720.653, 721.5980000000001, 729.173]
-print("Detected kill times:", kill_times)
-# 将每个击杀时间前后10秒剪辑到新视频中
-output_path = 'kill_clips.mp4'
-clip_video_around_times(video_path, output_path, kill_times)
+    for filename in os.listdir(input_dir):
+        if filename.endswith('.mp4'):
+            video_path = os.path.join(input_dir, filename)
+            output_path = os.path.join(output_dir, f'clipped_{filename}')
+            log_file = os.path.join(output_dir, f'{filename}_kill_events_log.txt')
+            process_video(video_path, output_path, log_file)
+
+if __name__ == "__main__":
+    input_dir = 'input'
+    output_dir = 'output'
+    main(input_dir, output_dir)
