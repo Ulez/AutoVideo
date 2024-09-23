@@ -6,6 +6,11 @@ from moviepy.video.io.VideoFileClip import VideoFileClip
 from moviepy.video.compositing.concatenate import concatenate_videoclips
 from collections import deque
 
+coordinates = {
+        "hydd": [1800, 127, 1839, 158],
+        "hyxye": [1800, 127, 1839, 158]
+}
+
 kill_queue = deque(maxlen=3)  # 存储最近三次识别的击杀数
 
 os.environ['TESSDATA_PREFIX'] = '/usr/share/tesseract-ocr/5/'
@@ -20,24 +25,11 @@ def preprocess_image(image):
     return binary
 
 def get_kill_words_frame(image, width_ratio=0.1, top_ratio=0.15, bottom_ratio=0.2):
-    # h, w = image.shape[:2]  # 获取图像的高和宽
-    # print("h : "+str(h)+",w ="+str(w))
-    
-    # # 计算裁剪区域的坐标
-    # x1 = int((w * (1 - width_ratio)) / 2)  # 居中裁剪
-    # x2 = int((w * (1 + width_ratio)) / 2)
-    
-    # y1 = int(h * top_ratio)    # top = 0.1 * height
-    # y2 = int(h * bottom_ratio)  # bottom = 0.2 * height
-    
-    # # 输出裁剪的坐标，便于调试
-    # print(f"裁剪区域：x1={x1}, y1={y1}, x2={x2}, y2={y2}")
     x1, y1, x2, y2 = 1110, 234, 1285, 273
-    # 裁剪图像
     return image[y1:y2, x1:x2]
 
 def get_kda_image(image):
-    x1, y1, x2, y2 = 1800, 127, 1839 , 158
+    x1, y1, x2, y2 = coordinates["hydd"]
     return image[y1:y2, x1:x2]
 
 def detect_kill_events(video_path, log_file):
@@ -169,7 +161,7 @@ def clip_video_around_times(video_path, output_path, kill_times):
 #     final_clip.write_videofile(output_path, codec="libx264")
 
 # 示例使用
-video_path = 'a.mp4'
+video_path = 'IMG_0281.MP4'
 log_file = 'kill_events_log.txt'
 kill_times = detect_kill_events(video_path, log_file)
 # kill_times = [317.18100000000004, 416.63800000000003, 492.387, 720.653, 721.5980000000001, 729.173]
