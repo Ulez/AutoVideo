@@ -8,11 +8,15 @@ from collections import deque
 
 w = 38
 h = 30
+# ipad:图像宽度: 1920, 高度: 1260
+# 手机：图像宽度： 2400, 高度: 1080
 
 coordinates = {
-        "虎牙呆呆-安卓":   [1800, 127, 1839, 158],
-        "虎牙小锦儿-ipad": [1516, 220, 1554, 250]
+    "虎牙呆呆-安卓":   [1800, 127, 39, 30],  # x1, y1, width, height
+    "虎牙呆呆-ipad":   [1561, 218, 38, 30], 
+    "虎牙小锦儿-ipad": [1516, 220, 38, 30]
 }
+
 
 kill_queue = deque(maxlen=3)  # 存储最近三次识别的击杀数
 nagkill_queue = deque(maxlen=6)  # 存储最近6次识别的击杀数
@@ -33,7 +37,11 @@ def get_kill_words_frame(image, width_ratio=0.1, top_ratio=0.15, bottom_ratio=0.
     return image[y1:y2, x1:x2]
 
 def get_kda_image(image):
-    x1, y1, x2, y2 = coordinates["虎牙呆呆-安卓"]
+    # height, width = image.shape[:2]
+    # print(f"输入图像宽度: {width}, 高度: {height}")
+    x1, y1, w, h = coordinates["虎牙呆呆-ipad"]
+    x2, y2 = x1 + w, y1 + h
+    # x1, y1, x2, y2 = coordinates["虎牙呆呆-ipad"]
     return image[y1:y2, x1:x2]
 
 def detect_kill_events(video_path, log_file):
@@ -86,7 +94,8 @@ def detect_kill_events(video_path, log_file):
                     kill_queue.append(kill_value)
                     nagkill_queue.append(kill_value)
                 except ValueError:
-                    print("error")
+                    print(f"error {current_time:.2f}, text = {kill}\n")
+                    log.write(f"error {current_time:.2f}, text = {kill}\n")
                     kill_queue.clear
                     nagkill_queue.clear
                 # 检查条件：stable_kill_value 存在且递增且小于 30
@@ -171,11 +180,10 @@ def main(input_dir, output_dir):
         os.makedirs(output_dir)
 
     for filename in os.listdir(input_dir):
-        if filename.endswith('.mp4'):
-            video_path = os.path.join(input_dir, filename)
-            output_path = os.path.join(output_dir, f'clipped_{filename}')
-            log_file = os.path.join(output_dir, f'{filename}_kill_events_log.txt')
-            process_video(video_path, output_path, log_file)
+        video_path = os.path.join(input_dir, filename)
+        output_path = os.path.join(output_dir, f'clipped_{filename}')
+        log_file = os.path.join(output_dir, f'{filename}_kill_events_log.txt')
+        process_video(video_path, output_path, log_file)
 
 if __name__ == "__main__":
     input_dir = 'input'
