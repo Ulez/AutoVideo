@@ -6,6 +6,11 @@ from moviepy.video.io.VideoFileClip import VideoFileClip
 from moviepy.video.compositing.concatenate import concatenate_videoclips
 from collections import deque
 
+kill_queue = deque(maxlen=3)  # 存储最近三次识别的击杀数
+nagkill_queue = deque(maxlen=6)  # 存储最近6次识别的击杀数
+
+os.environ['TESSDATA_PREFIX'] = '/usr/share/tesseract-ocr/5/'
+
 before = 5
 after = 3
 w = 38
@@ -17,14 +22,17 @@ coordinates = {
     "虎牙呆呆-安卓":   [1800, 127, 39, 30],  # x1, y1, width, height
     "虎牙呆呆-ipad":   [1561, 218, 38, 30], 
     "虎牙青帝-ipad":   [1516, 220, 38, 30], 
+    "小七-安卓":   [1655, 141, 38, 30], 
     "虎牙小锦儿-ipad": [1516, 220, 38, 30]
 }
 
-
-kill_queue = deque(maxlen=3)  # 存储最近三次识别的击杀数
-nagkill_queue = deque(maxlen=6)  # 存储最近6次识别的击杀数
-
-os.environ['TESSDATA_PREFIX'] = '/usr/share/tesseract-ocr/5/'
+def get_kda_image(image):
+    # height, width = image.shape[:2]
+    # print(f"输入图像宽度: {width}, 高度: {height}")
+    x1, y1, w, h = coordinates["小七-安卓"]
+    x2, y2 = x1 + w, y1 + h
+    # x1, y1, x2, y2 = coordinates["虎牙呆呆-ipad"]
+    return image[y1:y2, x1:x2]
 
 def preprocess_image(image):
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -37,14 +45,6 @@ def preprocess_image(image):
 
 def get_kill_words_frame(image, width_ratio=0.1, top_ratio=0.15, bottom_ratio=0.2):
     x1, y1, x2, y2 = 1110, 234, 1285, 273
-    return image[y1:y2, x1:x2]
-
-def get_kda_image(image):
-    # height, width = image.shape[:2]
-    # print(f"输入图像宽度: {width}, 高度: {height}")
-    x1, y1, w, h = coordinates["虎牙呆呆-安卓"]
-    x2, y2 = x1 + w, y1 + h
-    # x1, y1, x2, y2 = coordinates["虎牙呆呆-ipad"]
     return image[y1:y2, x1:x2]
 
 def detect_kill_events(video_path, log_file):
@@ -101,30 +101,31 @@ def detect_kill_events(video_path, log_file):
                 except ValueError:
                     print(f"error {current_time:.2f}, text = {kill}\n")
                     log.write(f"error {current_time:.2f}, text = {kill}\n")
-                    kill_queue.clear
-                    nagkill_queue.clear
+                    # kill_queue.clear
+                    # nagkill_queue.clear
                 # 检查条件：stable_kill_value 存在且递增且小于 30
                 # 检查队列中是否有连续三次相同的值
-                if len(kill_queue) == 3 and len(set(kill_queue)) == 1 and stable_kill_value is not None and previous_kill is not None:
+                if len(kill_queue) == 3 and len(set(kill_queue)) == 1:
+                    if previous_kill is None:
+                        previous_kill = kill_queue[0]
+                        continue
                     stable_kill_value = kill_queue[0]
                     if stable_kill_value - previous_kill>0 and stable_kill_value - previous_kill<5 and kill_value < 30:
                         log_entry = f'Time: {current_time:.2f}s, Text: {kill}\n'
                         log.write(log_entry)
                         print(log_entry)
                         kill_times.append(current_time - 3)  # 记录时间戳
+                        print(str(kill_times))
                         print(f"之前击杀数: {previous_kill}，更新为：{stable_kill_value}, time：{current_time - 3}")
                         previous_kill = stable_kill_value  # 更新上一个 kill 值
                 if len(nagkill_queue) == 6 and len(set(nagkill_queue)) == 1:
-                    if stable_kill_value is None:
-                        stable_kill_value = nagkill_queue[0]
-                        previous_kill = None
-                        continue
                     if stable_kill_value!= nagkill_queue[0]:
                         stable_kill_value = nagkill_queue[0]
                         log_entry = f'fix!!! Time: {current_time:.2f}s, Text: {kill}\n'
                         log.write(log_entry)
                         print(log_entry)
                         kill_times.append(current_time - 6)  # 记录时间戳
+                        print(str(kill_times))
                         print(f"fix!!!之前击杀数: {previous_kill}，更新为：{stable_kill_value}, time：{current_time - 6}")
                         previous_kill = stable_kill_value  # 更新上一个 kill 值戳
                 # print(str(kill_times))
