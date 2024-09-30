@@ -6,6 +6,8 @@ from moviepy.video.io.VideoFileClip import VideoFileClip
 from moviepy.video.compositing.concatenate import concatenate_videoclips
 from collections import deque
 
+before = 5
+after = 3
 w = 38
 h = 30
 # ipad:图像宽度: 1920, 高度: 1260
@@ -144,13 +146,13 @@ def clip_video_around_times(video_path, output_path, kill_times):
     kill_times.sort()
 
     # Initialize the start and end times for the first segment
-    current_start_time = max(kill_times[0] - 10, 0)  # 前10秒
-    current_end_time = min(kill_times[0] + 5, video.duration)  # 后5秒
+    current_start_time = max(kill_times[0] - before, 0)  # 前10秒
+    current_end_time = min(kill_times[0] + after, video.duration)  # 后5秒
 
     for t in kill_times[1:]:
         # 新的时间戳的起始和结束时间
-        new_start_time = max(t - 10, 0)
-        new_end_time = min(t + 5, video.duration)
+        new_start_time = max(t - before, 0)
+        new_end_time = min(t + after, video.duration)
 
         # 如果新时间戳在当前片段的范围内
         if new_start_time <= current_end_time + 10:  # 合并条件
