@@ -14,6 +14,7 @@ h = 30
 coordinates = {
     "虎牙呆呆-安卓":   [1800, 127, 39, 30],  # x1, y1, width, height
     "虎牙呆呆-ipad":   [1561, 218, 38, 30], 
+    "虎牙青帝-ipad":   [1516, 220, 38, 30], 
     "虎牙小锦儿-ipad": [1516, 220, 38, 30]
 }
 
@@ -39,7 +40,7 @@ def get_kill_words_frame(image, width_ratio=0.1, top_ratio=0.15, bottom_ratio=0.
 def get_kda_image(image):
     # height, width = image.shape[:2]
     # print(f"输入图像宽度: {width}, 高度: {height}")
-    x1, y1, w, h = coordinates["虎牙呆呆-ipad"]
+    x1, y1, w, h = coordinates["虎牙呆呆-安卓"]
     x2, y2 = x1 + w, y1 + h
     # x1, y1, x2, y2 = coordinates["虎牙呆呆-ipad"]
     return image[y1:y2, x1:x2]
@@ -58,7 +59,8 @@ def detect_kill_events(video_path, log_file):
     i = 0
     
     with open(log_file, 'w', encoding='utf-8') as log:
-        previous_kill = 0
+        previous_kill = None
+        stable_kill_value = None
         while True:
             ret, frame = video.read()
             if not ret:
@@ -86,6 +88,7 @@ def detect_kill_events(video_path, log_file):
                 kill_config = r'--oem 3 --psm 6 -c tessedit_char_whitelist=0123456789'
                 kill = pytesseract.image_to_string(kda_frame, lang='chi_sim', config=kill_config).strip()
                 current_time = video.get(cv2.CAP_PROP_POS_MSEC) / 1000
+                print(f"{kill},,,current_time = "+str(current_time))
                 try:
                     # 尝试将识别到的 kill 转换为整数
                     kill_value = int(kill)
@@ -100,18 +103,20 @@ def detect_kill_events(video_path, log_file):
                     nagkill_queue.clear
                 # 检查条件：stable_kill_value 存在且递增且小于 30
                 # 检查队列中是否有连续三次相同的值
-                if len(kill_queue) == 3 and len(set(kill_queue)) == 1:
+                if len(kill_queue) == 3 and len(set(kill_queue)) == 1 and stable_kill_value is not None and previous_kill is not None:
                     stable_kill_value = kill_queue[0]
-                    if stable_kill_value is not None and stable_kill_value - previous_kill>0 and stable_kill_value - previous_kill<4 and kill_value < 30:
+                    if stable_kill_value - previous_kill>0 and stable_kill_value - previous_kill<5 and kill_value < 30:
                         log_entry = f'Time: {current_time:.2f}s, Text: {kill}\n'
                         log.write(log_entry)
                         print(log_entry)
                         kill_times.append(current_time - 3)  # 记录时间戳
                         print(f"之前击杀数: {previous_kill}，更新为：{stable_kill_value}, time：{current_time - 3}")
                         previous_kill = stable_kill_value  # 更新上一个 kill 值
-                print(str(nagkill_queue))
-                print(str(kill_queue))
                 if len(nagkill_queue) == 6 and len(set(nagkill_queue)) == 1:
+                    if stable_kill_value is None:
+                        stable_kill_value = nagkill_queue[0]
+                        previous_kill = None
+                        continue
                     if stable_kill_value!= nagkill_queue[0]:
                         stable_kill_value = nagkill_queue[0]
                         log_entry = f'fix!!! Time: {current_time:.2f}s, Text: {kill}\n'
@@ -120,7 +125,7 @@ def detect_kill_events(video_path, log_file):
                         kill_times.append(current_time - 6)  # 记录时间戳
                         print(f"fix!!!之前击杀数: {previous_kill}，更新为：{stable_kill_value}, time：{current_time - 6}")
                         previous_kill = stable_kill_value  # 更新上一个 kill 值戳
-
+                # print(str(kill_times))
                 # if any(keyword in text for keyword in kill_words):
                 #     kill_times.append(current_time)
                 #     log_entry = f'Time: {current_time:.2f}s, Text: {text.strip()}\n'
