@@ -5,6 +5,7 @@ from moviepy.editor import VideoFileClip
 from moviepy.video.io.VideoFileClip import VideoFileClip
 from moviepy.video.compositing.concatenate import concatenate_videoclips
 from collections import deque
+import shutil
 
 kill_queue = deque(maxlen=3)  # 存储最近三次识别的击杀数
 nagkill_queue = deque(maxlen=6)  # 存储最近6次识别的击杀数
@@ -29,7 +30,7 @@ coordinates = {
 def get_kda_image(image):
     # height, width = image.shape[:2]
     # print(f"输入图像宽度: {width}, 高度: {height}")
-    x1, y1, w, h = coordinates["小七-安卓"]
+    x1, y1, w, h = coordinates["虎牙青帝-ipad"]
     x2, y2 = x1 + w, y1 + h
     # x1, y1, x2, y2 = coordinates["虎牙呆呆-ipad"]
     return image[y1:y2, x1:x2]
@@ -94,13 +95,13 @@ def detect_kill_events(video_path, log_file):
                 try:
                     # 尝试将识别到的 kill 转换为整数
                     kill_value = int(kill)
-                    log.write(f"{current_time:.2f}, text = {kill}\n")
+                    log.write(f"{current_time:.2f}, text = {kill},{kda_image_path}\n")
                     print(f"Time: {current_time:.2f}，当前击杀数：{kill}，{i}kda.png")
                     kill_queue.append(kill_value)
                     nagkill_queue.append(kill_value)
                 except ValueError:
-                    print(f"error {current_time:.2f}, text = {kill}\n")
-                    log.write(f"error {current_time:.2f}, text = {kill}\n")
+                    print(f"error {current_time:.2f}, text = {kill}, {i}kda.png")
+                    log.write(f"error {current_time:.2f}, text = {kill}, {kda_image_path}\n")
                     # kill_queue.clear
                     # nagkill_queue.clear
                 # 检查条件：stable_kill_value 存在且递增且小于 30
@@ -196,4 +197,9 @@ def main(input_dir, output_dir):
 if __name__ == "__main__":
     input_dir = 'input'
     output_dir = 'output'
+    out_image_dir = "image"
+    os.makedirs(input_dir, exist_ok=True)
+    os.makedirs(output_dir, exist_ok=True)
+    shutil.rmtree(out_image_dir)
+    os.makedirs(out_image_dir, exist_ok=True)  # 重新创建空的 'image' 目录
     main(input_dir, output_dir)
