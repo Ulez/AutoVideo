@@ -13,7 +13,7 @@ nagkill_queue = deque(maxlen=6)  # 存储最近6次识别的击杀数
 os.environ['TESSDATA_PREFIX'] = '/usr/share/tesseract-ocr/5/'
 
 before = 5
-after = 3
+after = 4
 w = 38
 h = 30
 # ipad:图像宽度: 1920, 高度: 1260
@@ -87,7 +87,6 @@ def detect_kill_events(video_path, log_file):
                 # custom_config = r'--oem 3 --psm 6'
                 # text = pytesseract.image_to_string(processed_frame, lang='chi_sim', config=custom_config)
                 # 初始化变量
-                # 初始化变量
                 kill_config = r'--oem 3 --psm 6 -c tessedit_char_whitelist=0123456789'
                 kill = pytesseract.image_to_string(kda_frame, lang='chi_sim', config=kill_config).strip()
                 current_time = video.get(cv2.CAP_PROP_POS_MSEC) / 1000
@@ -115,7 +114,7 @@ def detect_kill_events(video_path, log_file):
                         log_entry = f'Time: {current_time:.2f}s, Text: {kill}\n'
                         log.write(log_entry)
                         print(log_entry)
-                        kill_times.append(current_time - 3)  # 记录时间戳
+                        kill_times.append(current_time - 1.5)  # 记录时间戳
                         print(str(kill_times))
                         print(f"之前击杀数: {previous_kill}，更新为：{stable_kill_value}, time：{current_time - 3}")
                         previous_kill = stable_kill_value  # 更新上一个 kill 值
@@ -125,7 +124,7 @@ def detect_kill_events(video_path, log_file):
                         log_entry = f'fix!!! Time: {current_time:.2f}s, Text: {kill}\n'
                         log.write(log_entry)
                         print(log_entry)
-                        kill_times.append(current_time - 6)  # 记录时间戳
+                        kill_times.append(current_time - 3)  # 记录时间戳
                         print(str(kill_times))
                         print(f"fix!!!之前击杀数: {previous_kill}，更新为：{stable_kill_value}, time：{current_time - 6}")
                         previous_kill = stable_kill_value  # 更新上一个 kill 值戳
