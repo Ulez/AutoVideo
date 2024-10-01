@@ -74,7 +74,7 @@ def detect_kill_events(video_path, log_file):
             #     continue
             # if i> 7711:
             #     break
-            if i % 26 == 0:
+            if i % 13 == 0:
                 # kill_words_frame = get_kill_words_frame(frame)
                 kda_frame = get_kda_image(frame)
                 # kill_word_image_path = f"image/{i}killwords.png"
