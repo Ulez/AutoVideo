@@ -30,7 +30,7 @@ coordinates = {
 def get_kda_image(image):
     # height, width = image.shape[:2]
     # print(f"输入图像宽度: {width}, 高度: {height}")
-    x1, y1, w, h = coordinates["虎牙青帝-ipad"]
+    x1, y1, w, h = coordinates["虎牙呆呆-ipad"]
     x2, y2 = x1 + w, y1 + h
     # x1, y1, x2, y2 = coordinates["虎牙呆呆-ipad"]
     return image[y1:y2, x1:x2]
@@ -95,7 +95,7 @@ def detect_kill_events(video_path, log_file):
                     # 尝试将识别到的 kill 转换为整数
                     kill_value = int(kill)
                     log.write(f"{current_time:.2f}, text = {kill},{kda_image_path}\n")
-                    print(f"Time: {current_time:.2f}，当前击杀数：{kill}，{i}kda.png")
+                    print(f"Time: {current_time:.2f}，kill：{kill}，{i}kda.png")
                     kill_queue.append(kill_value)
                     nagkill_queue.append(kill_value)
                 except ValueError:
@@ -116,7 +116,7 @@ def detect_kill_events(video_path, log_file):
                         print(log_entry)
                         kill_times.append(current_time - 1.5)  # 记录时间戳
                         print(str(kill_times))
-                        print(f"之前击杀数: {previous_kill}，更新为：{stable_kill_value}, time：{current_time - 3}")
+                        print(f"kill:{previous_kill}->{stable_kill_value}, add time:{current_time - 1.5}")
                         previous_kill = stable_kill_value  # 更新上一个 kill 值
                 if len(nagkill_queue) == 6 and len(set(nagkill_queue)) == 1:
                     if stable_kill_value!= nagkill_queue[0]:
@@ -126,7 +126,7 @@ def detect_kill_events(video_path, log_file):
                         print(log_entry)
                         kill_times.append(current_time - 3)  # 记录时间戳
                         print(str(kill_times))
-                        print(f"fix!!!之前击杀数: {previous_kill}，更新为：{stable_kill_value}, time：{current_time - 6}")
+                        print(f"fix kill:{previous_kill}->{stable_kill_value}, add time:{current_time - 3}")
                         previous_kill = stable_kill_value  # 更新上一个 kill 值戳
                 # print(str(kill_times))
                 # if any(keyword in text for keyword in kill_words):
