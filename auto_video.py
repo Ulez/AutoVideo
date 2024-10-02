@@ -10,7 +10,7 @@ import shutil
 kill_queue = deque(maxlen=3)  # 存储最近三次识别的击杀数
 nagkill_queue = deque(maxlen=6)  # 存储最近6次识别的击杀数
 
-os.environ['TESSDATA_PREFIX'] = '/usr/share/tesseract-ocr/5/'
+# os.environ['TESSDATA_PREFIX'] = '/usr/share/tesseract-ocr/5/'
 
 before = 5
 after = 4
